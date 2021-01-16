@@ -1,24 +1,21 @@
+from __future__ import annotations
 import json
 import re
+import typing
+
+
+def handleType(root: Structurer, o, name=None):
+    if type(o) is dict:
+        return StructureDict(root, o, name=name)
+    elif type(o) is list:
+        return StructureList(root, o, name=name)
+    return StructureElement(o)
 
 
 class Structurer:
-    dicts = []
-
     def __init__(self, root: any):
-        if isinstance(root, Structurer):
-            if type(root) is StructureDict:
-                self.dicts.append(root)
-        else:
-            self.root = self.define_property(root)
-
-    @classmethod
-    def define_property(cls, o, name=None):
-        if type(o) is dict:
-            return StructureDict(o, name=name)
-        elif type(o) is list:
-            return StructureList(o, name=name)
-        return StructureElement(o)
+        self.dicts_objects = []
+        self.root = handleType(self, root)
 
     def toTypedDict(self, indent="    ") -> str:
         td = "import typing\n\n"
@@ -27,19 +24,19 @@ class Structurer:
             td += "# " + " Reference ".center(50, "*") + "\n"
             td += "# " + self.root.toTypedDict().center(50, " ") + "\n"
             td += "# " + "*" * 50 + "\n"
+        classes = self.dicts_objects
 
-        if self.dicts:
+        if classes:
             td += "\n# " + " Classes ".center(50, "*") + "\n\n"
-            for _d in self.dicts[::-1]:
+            for _d in classes:
                 td += _d.toTypedDict(indent=indent) + "\n\n"
             td += "# " + "-" * 50
         td += "\n"
         return td
 
 
-class StructureElement(Structurer):
+class StructureElement:
     def __init__(self, obj):
-        super().__init__(self)
         if obj is None:
             self.obj = "None"
         else:
@@ -48,18 +45,21 @@ class StructureElement(Structurer):
     def toTypedDictReference(self) -> str:
         return self.obj
 
-    def toTypedDict(self, indent="    ") -> str:
+    def toTypedDict(self) -> str:
         return self.toTypedDictReference()
 
+    def __eq__(self, other: StructureElement):
+        assert type(other) is StructureElement
+        return self.obj == other.obj
 
-class StructureList(Structurer):
-    def __init__(self, obj, name=None):
-        super().__init__(self)
+
+class StructureList:
+    def __init__(self, root: Structurer, obj, name=None):
         assert type(obj) is list
         if len(obj) == 0:
             self.obj = StructureElement(None)
         else:
-            self.obj = self.define_property(obj[0], name=name)
+            self.obj = handleType(root, obj[0], name=name)
 
     def getName(self) -> str:
         return self.obj.toTypedDictReference()
@@ -67,34 +67,44 @@ class StructureList(Structurer):
     def toTypedDictReference(self) -> str:
         return self.getName()
 
-    def toTypedDict(self, indent="    "):
+    def toTypedDict(self):
         return F"typing.List[{self.obj.toTypedDictReference()}]"
 
+    def __eq__(self, other: StructureList):
+        assert type(other) is StructureList
+        return self.obj == other.obj
 
-class StructureDict(Structurer):
-    names = []
 
+class StructureDict:
     @classmethod
-    def getName(cls, name=None):
+    def getName(cls, existing: typing.List[StructureDict], name=None):
         def nameMaker(_name: str, _i: int = None):
             return F"""{"".join([x.capitalize() for x in re.split("[-_ ]+", _name)]) if _name is not None else 'GenericDict'}{_i if _i is not None else ''}"""
 
         name = nameMaker(name)
-        if name in cls.names:
-            i = 0
-            while nameMaker(name, i) in cls.names:
+        if name in map(lambda x: x.name, existing):
+            i = 1
+            while nameMaker(name, i) in map(lambda x: x.name, existing):
                 i += 1
             name = nameMaker(name, i)
-        cls.names.append(name)
         return name
 
-    def __init__(self, obj, name=None):
-        super().__init__(self)
+    def __init__(self, root: Structurer, obj, name=None):
         assert type(obj) is dict
+
         self.struct = dict()
         for k, v in obj.items():
-            self.struct[k] = self.define_property(v, name=k)
-        self.name = self.getName(name)
+            self.struct[k] = handleType(root, v, name=k)
+
+        self.name = None
+        try:
+            index = root.dicts_objects.index(self)
+            elt = root.dicts_objects[index]
+            self.struct = elt.struct
+            self.name = elt.name
+        except ValueError:
+            self.name = self.getName(root.dicts_objects, name)
+            root.dicts_objects.append(self)
 
     def __repr__(self):
         return F"<StructureDict {self.name}>"
@@ -115,6 +125,15 @@ class StructureDict(Structurer):
             td += "\n"
 
         return td
+
+    def __eq__(self, other: StructureDict):
+        assert type(other) is StructureDict
+        for k, v in self.struct.items():
+            if k not in other.struct:
+                return False
+            if v != other.struct[k]:
+                return False
+        return True
 
 
 if __name__ == "__main__":
