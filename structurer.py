@@ -4,7 +4,7 @@ import re
 import typing
 
 
-def handleType(root: Structurer, o: any, name: str = None):
+def handleType(root: Structurer, o: any, name: str = None) -> StructureDict or StructureList or StructureElement:
     if type(o) is dict:
         return StructureDict(root, o, name=name)
     elif type(o) is list:
@@ -77,7 +77,7 @@ class StructureList:
 
 class StructureDict:
     @classmethod
-    def getName(cls, existing: typing.List[StructureDict], name=None):
+    def getName(cls, existing: typing.List[StructureDict], name: str = None):
         def nameMaker(_name: str, _i: int = None):
             return F"""{"".join([x.capitalize() for x in re.split("[-_ ]+", _name)]) if _name is not None else 'GenericDict'}{_i if _i is not None else ''}"""
 
@@ -112,7 +112,7 @@ class StructureDict:
     def toTypedDictReference(self) -> str:
         return self.name
 
-    def toTypedDict(self, indent="    ") -> str:
+    def toTypedDict(self, indent: str = "    ") -> str:
         td = f"class {self.toTypedDictReference()}(typing.TypedDict):\n"
         for k, v in self.struct.items():
             td += F"{indent}{k}: "
