@@ -31,9 +31,26 @@ class Images(typing.TypedDict):
     width: int
 
 
+class Items(typing.TypedDict):
+    artists: typing.List[Artists]
+    available_markets: typing.List[str]
+    disc_number: int
+    duration_ms: int
+    explicit: bool
+    external_urls: ExternalUrls
+    href: str
+    id: str
+    is_local: bool
+    name: str
+    preview_url: str
+    track_number: int
+    type: str
+    uri: str
+
+
 class Tracks(typing.TypedDict):
     href: str
-    items: typing.List[Artists]
+    items: typing.List[Items]
     limit: int
     next: None
     offset: int
@@ -41,8 +58,30 @@ class Tracks(typing.TypedDict):
     total: int
 
 
+class Albums(typing.TypedDict):
+    album_type: str
+    artists: typing.List[Artists]
+    available_markets: typing.List[str]
+    copyrights: typing.List[Copyrights]
+    external_ids: ExternalIds
+    external_urls: ExternalUrls
+    genres: typing.List[None]
+    href: str
+    id: str
+    images: typing.List[Images]
+    label: str
+    name: str
+    popularity: int
+    release_date: str
+    release_date_precision: str
+    total_tracks: int
+    tracks: Tracks
+    type: str
+    uri: str
+
+
 class GenericDict(typing.TypedDict):
-    albums: typing.List[Artists]
+    albums: typing.List[Albums]
 
 
 # --------------------------------------------------

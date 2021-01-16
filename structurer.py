@@ -4,7 +4,7 @@ import re
 import typing
 
 
-def handleType(root: Structurer, o, name=None):
+def handleType(root: Structurer, o: any, name: str = None):
     if type(o) is dict:
         return StructureDict(root, o, name=name)
     elif type(o) is list:
@@ -17,7 +17,7 @@ class Structurer:
         self.dicts_objects = []
         self.root = handleType(self, root)
 
-    def toTypedDict(self, indent="    ") -> str:
+    def toTypedDict(self, indent: str = "    ") -> str:
         td = "import typing\n\n"
 
         if type(self.root) is not StructureDict:
@@ -48,13 +48,13 @@ class StructureElement:
     def toTypedDict(self) -> str:
         return self.toTypedDictReference()
 
-    def __eq__(self, other: StructureElement):
+    def __eq__(self, other: StructureElement) -> bool:
         assert type(other) is StructureElement
         return self.obj == other.obj
 
 
 class StructureList:
-    def __init__(self, root: Structurer, obj, name=None):
+    def __init__(self, root: Structurer, obj: list, name: str = None):
         assert type(obj) is list
         if len(obj) == 0:
             self.obj = StructureElement(None)
@@ -67,10 +67,10 @@ class StructureList:
     def toTypedDictReference(self) -> str:
         return self.getName()
 
-    def toTypedDict(self):
+    def toTypedDict(self) -> str:
         return F"typing.List[{self.obj.toTypedDictReference()}]"
 
-    def __eq__(self, other: StructureList):
+    def __eq__(self, other: StructureList) -> bool:
         assert type(other) is StructureList
         return self.obj == other.obj
 
@@ -89,7 +89,7 @@ class StructureDict:
             name = nameMaker(name, i)
         return name
 
-    def __init__(self, root: Structurer, obj, name=None):
+    def __init__(self, root: Structurer, obj: dict, name: str = None):
         assert type(obj) is dict
 
         self.struct = dict()
@@ -106,7 +106,7 @@ class StructureDict:
             self.name = self.getName(root.dicts_objects, name)
             root.dicts_objects.append(self)
 
-    def __repr__(self):
+    def __repr__(self) -> str:
         return F"<StructureDict {self.name}>"
 
     def toTypedDictReference(self) -> str:
@@ -126,13 +126,18 @@ class StructureDict:
 
         return td
 
-    def __eq__(self, other: StructureDict):
+    def __eq__(self, other: StructureDict) -> bool:
         assert type(other) is StructureDict
+        keys1 = set(self.struct.keys())
+        keys2 = set(other.struct.keys())
+        if keys1 != keys2:
+            return False
         for k, v in self.struct.items():
             if k not in other.struct:
                 return False
             if v != other.struct[k]:
                 return False
+
         return True
 
 
