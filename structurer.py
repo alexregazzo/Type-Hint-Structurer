@@ -123,6 +123,6 @@ if __name__ == "__main__":
 
     s = Structurer(exampledata)
     text = s.toTypedDict()
-    with open("example.py", "w+") as f:
+    with open("generated_example.py", "w+") as f:
         f.write(text)
     print(text)
